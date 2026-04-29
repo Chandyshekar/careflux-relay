@@ -243,10 +243,23 @@ app.post("/send-bulk", async (req, res) => {
 // HTML EMAIL BUILDER
 // ════════════════════════════════════════════
 function buildHtmlEmail({ toName, subject, body, providerName, previewUrl }) {
-  const paragraphs = body
+  const paragraphs = cleanBody
     .split("\n")
     .filter(l => l.trim())
     .map(l => {
+        // ── Strip duplicate greeting from body ──
+  // The AI draft starts with "Dear X," — remove it since the HTML template adds its own
+  let cleanBody = body
+    .replace(/dear.+?,?/i, "") // strip "Dear Dr. Name," at start
+    .trim();
+
+  // ── Strip duplicate sign-off/signature from body ──
+  // Remove everything from "Warm regards"/"Best regards"/"Sincerely" downward
+  // since the HTML template has its own Chandrashekar signature block
+  cleanBody = cleanBody
+    .replace(/(warm regards|best regards|kind regards|sincerely|regards|best|thanks|thank you).*/is, "")
+    .trim();
+
       // If the line looks like a URL, make it a clickable link
       if (l.trim().startsWith("http")) {
         return `<p style="margin:0 0 14px"><a href="${l.trim()}" style="color:#00897b;font-weight:600;word-break:break-all">${l.trim()}</a></p>`;
