@@ -1,5 +1,5 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const cors = require('cors');
 
 const app = express();
@@ -7,35 +7,21 @@ app.use(express.json());
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
-const SMTP_HOST = process.env.SMTP_HOST || 'smtpout.secureserver.net';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT) || 465;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RELAY_SECRET = process.env.RELAY_SECRET;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'chandrashekar@carefluxai.com';
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS
-  }
-});
+const resend = new Resend(RESEND_API_KEY);
 
-transporter.verify(function (error, success) {
-  if (error) {
-    console.error('SMTP connection error:', error);
-  } else {
-    console.log('✅ SMTP connected — ready to send from ' + SMTP_USER);
-  }
-});
+console.log('Careflux AI Email Relay (Resend) starting...');
+console.log('From email: ' + FROM_EMAIL);
 
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'Careflux AI Email Relay',
-    from: SMTP_USER
+    provider: 'Resend',
+    from: FROM_EMAIL
   });
 });
 
@@ -51,13 +37,14 @@ app.post('/send', async (req, res) => {
   }
 
   try {
-    await transporter.sendMail({
-      from: `"Careflux AI" <${SMTP_USER}>`,
-      to: toName ? `"${toName}" <${to}>` : to,
+    const data = await resend.emails.send({
+      from: 'Careflux AI <' + FROM_EMAIL + '>',
+      to: toName ? toName + ' <' + to + '>' : to,
       subject: subject,
       text: body
     });
-    res.json({ success: true, message: 'Email sent successfully' });
+    console.log('Email sent successfully to ' + to + ', id: ' + data.id);
+    res.json({ success: true, message: 'Email sent successfully', id: data.id });
   } catch (err) {
     console.error('Send error:', err);
     res.status(500).json({ error: 'Failed to send email', details: err.message });
@@ -78,13 +65,13 @@ app.post('/send-bulk', async (req, res) => {
   const results = [];
   for (const email of emails) {
     try {
-      await transporter.sendMail({
-        from: `"Careflux AI" <${SMTP_USER}>`,
+      const data = await resend.emails.send({
+        from: 'Careflux AI <' + FROM_EMAIL + '>',
         to: email.to,
         subject: email.subject,
         text: email.body
       });
-      results.push({ to: email.to, success: true });
+      results.push({ to: email.to, success: true, id: data.id });
     } catch (err) {
       results.push({ to: email.to, success: false, error: err.message });
     }
@@ -94,5 +81,5 @@ app.post('/send-bulk', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Careflux AI Email Relay running on port ${PORT}`);
+  console.log('Careflux AI Email Relay (Resend) running on port ' + PORT);
 });
