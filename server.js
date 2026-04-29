@@ -1,5 +1,5 @@
 /**
- * Careflux AI — Email Relay + Demo Page Host
+ * Careflux AI — Email Relay & Demo Host
  * - Sends emails via Resend API
  * - Stores & serves provider demo landing pages at /demo/:slug
  * Deploy free on Render.com
@@ -38,7 +38,7 @@ const demoStore = new Map();
 app.get("/", (req, res) => {
   res.json({
     status:      "ok",
-    service:     "Careflux AI Relay + Demo Host",
+    service:     "Careflux AI Relay & Demo Host",
     from:        FROM_EMAIL,
     demosStored: demoStore.size,
     demoSlugs:   [...demoStore.keys()],
@@ -364,7 +364,7 @@ app.get("/resend-log", async (req, res) => {
 
 // ── START ──
 app.listen(parseInt(PORT), () => {
-  console.log(`\n🚀 Careflux AI Relay + Demo Host · Port ${PORT}`);
+  console.log(`\n🚀 Careflux AI Relay & Demo Host · Port ${PORT}`);
   console.log(`   Email from: ${FROM_EMAIL}`);
   console.log(`   Demo pages: /demo/:slug\n`);
 });
