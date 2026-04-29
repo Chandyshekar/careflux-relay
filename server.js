@@ -249,17 +249,27 @@ app.post("/send-bulk", async (req, res) => {
 // HTML EMAIL BUILDER
 // ════════════════════════════════════════════
 function buildHtmlEmail({ toName, subject, body, providerName, previewUrl }) {
-  // Strip duplicate greeting from body
-  // The AI draft starts with "Dear X," — remove it since the HTML template adds its own
-  let cleanBody = body
-    .replace(/dear.+?,?/i, "")  // strip "Dear Dr. Name," at start
+  // Clean body — strip greeting lines and signature block
+  let cleanBody = body.trim();
+
+  // Remove ALL leading greeting lines (handles multi-line greetings like "Dear X,")
+  // Keeps stripping any line at the top that looks like a salutation
+  const greetingPattern = /^(dear|hi|hello).{0,40},?$/i;
+  let prevBody;
+  while (prevBody !== cleanBody) {
+    prevBody = cleanBody;
+    cleanBody = cleanBody.replace(greetingPattern, "").trim();
+  }
+
+  // Remove trailing signature block — everything from sign-off keyword downward
+  cleanBody = cleanBody
+    .replace(/(warm regards|best regards|kind regards|sincerely|regards,|best,|thanks,|thank you,|cheers,)[\s\S]*/is, "")
     .trim();
 
-  // Strip duplicate sign-off/signature from body
-  // Remove everything from "Warm regards"/"Best regards"/"Sincerely" downward
-  // since the HTML template has its own Chandrashekar signature block
+  // Also strip any lines that are just a name followed by a comma (orphaned salutation)
+  // e.g. "chandy," or "Dr. Patel," sitting alone at the top
   cleanBody = cleanBody
-    .replace(/(warm regards|best regards|kind regards|sincerely|regards|best|thanks|thank you)[\s\S]*/is, "")
+    .replace(/^[A-Za-z][A-Za-z.\s]{1,40},$/m, "")
     .trim();
 
   const paragraphs = cleanBody
